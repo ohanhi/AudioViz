@@ -1,8 +1,7 @@
 var ParticleStreams = function() {
 
   var scene;
-  var offserRadius = -200;
-  var origRadius = (window.innerWidth < window.innerHeight ? window.innerWidth + offserRadius : window.innerHeight + offserRadius) / 4;  //(window.innerWidth < window.innerHeight ? window.innerWidth - 50 : window.innerHeight - 50) / 4;
+  var origRadius = (window.innerWidth > window.innerHeight ? window.innerWidth : window.innerHeight) / 4;
   var maxRadius, radius, h, k, r, holder;
 
   var lights = [
@@ -13,7 +12,10 @@ var ParticleStreams = function() {
   ];
 
   var speed, stepLength, step;
-  var radiusDirection = 1.001;
+  var origRadiusDirection = 1.001;
+  var radiusDirection = origRadiusDirection;
+  var hidden = false;
+  var hideSpeed = 20;
 
   this.init = function(threeScene){
     scene = threeScene;
@@ -33,11 +35,11 @@ var ParticleStreams = function() {
   };
 
   this.hide = function(){
-    holder.position.z = 1000;
+    hidden = true;
   };
 
   this.show = function(){
-    holder.position.z = 0;
+    hidden = false;
   };
 
   this.countRadius = function(forceRadius) {
@@ -57,9 +59,19 @@ var ParticleStreams = function() {
     r = radius;
   };
 
-  this.update = function(colors, bpm, forceRadius){
+  this.update = function(intensity, colors, bpm, forceRadius){
     this.initSpeed(bpm);
     this.countRadius(forceRadius);
+
+    if(hidden){
+      if(holder.position.z < 1000) {
+        holder.position.z += hideSpeed;
+      }
+    } else {
+      if(holder.position.z > 0) {
+        holder.position.z -= hideSpeed;
+      }
+    }
 
     _.each(lights, function(lightObj, index){
       var x = h + r * Math.cos(lightObj.theta);
@@ -67,12 +79,14 @@ var ParticleStreams = function() {
 
       lightObj.light.color.setHex(colors[index]);
 
+      lightObj.light.position.z = -199;
       lightObj.light.position.x = x - radius;
       lightObj.light.position.y = y - radius;
+      lightObj.light.intensity = intensity;
 
       lightObj.theta += step;
 
-      lightObj.stream.update(colors[index], lightObj.light.position);
+      lightObj.stream.update(intensity, colors[index], lightObj.light.position);
     });
 
     r = r + radiusDirection;

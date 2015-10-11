@@ -11,18 +11,17 @@ var AudioVisualizer = function(){
   var buffersize = 256;
   var audioDrawer, data;
   var bpm = 80;
+  var intensity = 1;
 
-  var tapTempo = 0;
-  var tapTempoTs = 0;
-  var modeChanged = false;
-  var colorChanged = false;
+  var autoplay = false;
+  var autoplayTimeout;
 
   var modes = {
     background: true,
     blocks: false,
-    circle: true,
+    circle: false,
     flower: false,
-    smoke: true
+    smoke: false
   };
 
   var colorSchemes = [
@@ -32,7 +31,7 @@ var AudioVisualizer = function(){
     [0x00fa1d, 0x52fa00, 0xc2fa00, 0x2abc26]
   ];
 
-  var selectedSheme = 0;
+  var selectedScheme = 0;
 
   this.initMic = function(){
     if (navigator.getUserMedia) {
@@ -53,8 +52,13 @@ var AudioVisualizer = function(){
 
   this.init = function(songName){
     audioDrawer = new AudioDrawer();
-    audioDrawer.init(modes, colorSchemes[selectedSheme]);
-    window.addEventListener("keydown", dealWithKeyboard, false);
+    audioDrawer.init(modes, colorSchemes[selectedScheme]);
+
+    var keyboardInput = new KeyboardInput();
+    keyboardInput.init(this);
+
+    var midiInput = new MidiInput();
+    midiInput.init(this, audioPlayer);
 
     window.addEventListener( 'resize', onWindowResize, false );
     function onWindowResize() {
@@ -74,68 +78,67 @@ var AudioVisualizer = function(){
   this.tick = function(){
     requestAnimationFrame(self.tick);
     data = audioPlayer.getData();
-    audioDrawer.render(data, bpm);
+    audioDrawer.render(data, bpm, intensity);
   };
 
-  function dealWithKeyboard(e) {
-    switch(e.keyIdentifier) {
-      case "U+0054":
-        var tmpTime = new Date().getTime();
-        tapTempo = tmpTime - tapTempoTs;
-        tapTempoTs = tmpTime;
-        bpm = Math.round(1 / (tapTempo / 1000) * 60);
-        console.log(bpm + ' BPM');
-        break;
-      case "U+0031":
-        modeChanged = true;
-        modes.background = modes.background === false;
-        break;
-      case "U+0032":
-        modeChanged = true;
-        modes.blocks = modes.blocks === false;
-        break;
-      case "U+0033":
-        modeChanged = true;
-        modes.circle = modes.circle === false;
-        break;
-      case "U+0034":
-        modeChanged = true;
-        modes.flower = modes.flower === false;
-        break;
-      case "U+0035":
-        modeChanged = true;
-        modes.smoke = modes.smoke === false;
-        break;
-      case "U+0036":
-        modeChanged = true;
-        audioDrawer.blast();
-        break;
-
-      // Colors
-      case "U+0041":
-        selectedSheme = 0;
-        colorChanged = true;
-        break;
-      case "U+0053":
-        selectedSheme = 1;
-        colorChanged = true;
-        break;
-      case "U+0044":
-        selectedSheme = 2;
-        colorChanged = true;
-        break;
-      case "U+0046":
-        selectedSheme = 3;
-        colorChanged = true;
-        break;
+  function autoplaySwitch() {
+    for (var key in modes) {
+      var rand = Math.random() >= 0.5;
+      modes[key] = rand;
     }
 
-    if(modeChanged) {
-      audioDrawer.changeMode(modes);
+    selectedScheme = Math.floor(Math.random()*colorSchemes.length)
+    audioDrawer.changeColors(colorSchemes[selectedScheme]);
+
+    audioDrawer.changeMode(modes);
+
+    var delay = 2000 + Math.floor(Math.random() * 10000);
+    autoplayTimeout = setTimeout(autoplaySwitch, delay);
+  }
+
+  function toggleAutoPlay() {
+    if(autoplay === true) {
+      clearTimeout(autoplayTimeout)
     }
 
-    if(colorChanged) {
-      audioDrawer.changeColors(colorSchemes[selectedSheme]);
+    autoplay = autoplay === false;
+
+    if(autoplay === true){
+      autoplaySwitch()
     }
+  }
+
+  this.setRandomColorScheme = function() {
+    this.setColorScheme(Math.floor(Math.random() * colorSchemes.length));
+  };
+
+  this.setColorScheme = function(colorScheme) {
+    selectedScheme = colorScheme;
+    audioDrawer.changeColors(colorSchemes[selectedScheme]);
+  };
+
+  this.toggleMode = function(mode) {
+    modes[mode] = modes[mode] === false;
+    audioDrawer.changeMode(modes);
+  };
+
+  this.toggleAutoPlay = function() {
+    toggleAutoPlay();
+  };
+
+  this.triggerBlast = function() {
+    audioDrawer.blast();
+
+    // Is this required? It was called before refactoring
+    audioDrawer.changeMode(modes);
+  };
+
+  this.setIntencity = function(intens) {
+    intensity = intens;
+  };
+
+  this.setBpm = function(beatsPerMinute) {
+    bpm = beatsPerMinute;
+    console.log(bpm + ' BPM');
   }
 };

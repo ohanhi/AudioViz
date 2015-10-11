@@ -3,7 +3,8 @@ var AudioPlayer = function(){
   window.AudioContext = window.AudioContext || window.webkitAudioContext;
   var context = new window.AudioContext();
   var analyser = context.createAnalyser();
-  var audioSource,bufferLength,dataArray;
+  var gainNode = context.createGain();
+  var audioSource, bufferLength, dataArray, gainNode;
 
   this.stop = function(){
     audioSource.stop();
@@ -11,21 +12,17 @@ var AudioPlayer = function(){
 
   this.getData = function(){
     analyser.getByteFrequencyData(dataArray);
-    var cleanData = _.reject(dataArray, function(data){
-      return data === 0;
-    });
-
     return {
-      spectrum: cleanData,
+      spectrum: dataArray,
       song: audioSource,
-      volume: getVolume(cleanData)
+      volume: getVolume(dataArray)
     };
   };
 
   this.init = function(buffersize){
-    analyser.minDecibels = -90;
-    analyser.maxDecibels = 0;
-    analyser.smoothingTimeConstant = 0.75;
+    //analyser.minDecibels = -90;
+    //analyser.maxDecibels = 0;
+    //analyser.smoothingTimeConstant = 0.75;
 
     analyser.fftSize = buffersize;
     bufferLength = analyser.frequencyBinCount;
@@ -36,6 +33,10 @@ var AudioPlayer = function(){
     audioSource = context.createMediaStreamSource(stream);
     this.init(buffersize);
     audioSource.connect(analyser);
+  };
+
+  this.setVolume = function(vol){
+    gainNode.gain.value = vol;
   };
 
   this.songLoaded = function(request, buffersize){
@@ -52,8 +53,9 @@ var AudioPlayer = function(){
   function playSound(buffer) {
     audioSource = context.createBufferSource();
     audioSource.buffer = buffer;
-    audioSource.connect(context.destination);
-    audioSource.connect(analyser);
+    audioSource.connect(gainNode);
+    gainNode.connect(context.destination);
+    gainNode.connect(analyser);
     audioSource.start(0);
   }
 

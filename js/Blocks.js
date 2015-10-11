@@ -1,34 +1,45 @@
 var Blocks = function(){
-  var scene, cube, mesh, holder;
-  var boxAmount = 32;
-  var boxSize = 8;
-  var boxHeight = 8 * 2;
+  var scene, holder, x, y, lights, colors;
+  var boxAmount = 128;
+  var boxSize = 2;
+  var boxHeight = boxSize * 2;
   var boxes = [];
-  var material = new THREE.MeshPhongMaterial( { color: 0xffffff, specular: 0xffffff, shininess: 50 } );
 
-  var x, y;
   var radOffset = -150;
   var radius = (window.innerWidth < window.innerHeight ? window.innerWidth + radOffset : window.innerHeight + radOffset) / 4;
   var h = radius;
   var k = radius;
   var r = radius;
 
-  var lights;
-  var colors;
-
   var step = 2*Math.PI/boxAmount;
   var theta = step * (boxAmount / 4) * -1;
 
+  var hidden = false;
+  var hideSpeed = 20;
+
   this.hide = function() {
-    holder.position.z = 1000;
+    hidden = true;
   };
 
   this.show = function() {
-    holder.position.z = 0;
+    hidden = false;
   };
 
   this.update = function(newColors, data) {
-    var diff = Math.floor(data.spectrum.length / boxes.length);
+    if(hidden){
+      _.each(boxes, function(box, index){
+        var toScale = box.mesh.scale.y * 0.9;
+        box.mesh.scale.y = toScale;
+        box.mesh.position.y = boxHeight / 2 * toScale;
+      });
+
+      holder.position.z = holder.position.z < 600 ? holder.position.z + hideSpeed : holder.position.z;
+      return
+    } else {
+      holder.position.z = holder.position.z > 0 ? holder.position.z - hideSpeed : holder.position.z;
+    }
+
+    var diff = Math.round(data.spectrum.length / boxes.length);
 
     if(newColors !== colors) {
       colors = newColors;
@@ -39,11 +50,10 @@ var Blocks = function(){
     }
 
     _.each(boxes, function(box, index){
-      var scale = data.spectrum[diff * index] * 0.03;
+      var scale = data.spectrum[diff * index] * 0.1;
       var toScale = scale < 0.01 ? 0.01 : scale;
       box.mesh.scale.y = toScale;
       box.mesh.position.y = boxHeight / 2 * toScale;
-      box.mesh.rotation.y -= 0.05;
     });
   };
 
@@ -62,12 +72,13 @@ var Blocks = function(){
   };
 
   function addObject(){
-    cube = new THREE.BoxGeometry(boxSize, boxHeight, boxSize);
+    var cube = new THREE.BoxGeometry(boxSize, boxHeight, boxSize);
+    var material = new THREE.MeshPhongMaterial( { color: 0xffffff, specular: 0xffffff, shininess: 50 } );
+    var mesh = new THREE.Mesh(cube, material);
 
     var meshHolder = new THREE.Object3D();
     meshHolder.name = "box"+boxes.length;
 
-    mesh = new THREE.Mesh(cube, material);
 
     x = h + r * Math.cos(theta);
     y = k - r * Math.sin(theta);

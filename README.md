@@ -7,6 +7,7 @@ Demo:
 
 ### Effects
 ```
+0 = Toggle autoplay
 1 = Toggle background
 2 = Toggle bars
 3 = Toggle particle circle
@@ -24,11 +25,20 @@ C = Colorscheme 3
 D = Colorscheme 4
 ```
 
+##MIDI controls:
+
+MIDI controller input is implemented with [Web MIDI](https://webaudio.github.io/web-midi-api/) and requires a recent version of Chrome.
+
+```
+Note C-2 = Add white smoke
+Control #1 = Set BPM (20..480)
+```
+
+---
+
 Videos from [Video Copilot](http://www.videocopilot.net/blog/2011/12/new-tutorial-and-free-stock-footage/)
 
 
 ### Todo
-```
-[ ] Change the logic how the background layer works
-[ ] Autopilot mode
-```
+- [x] Change the logic how the background layer works
+- [x] Autopilot mode
